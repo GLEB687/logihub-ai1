@@ -812,7 +812,7 @@ st.markdown(
             border:1px solid #D7E1EC !important;
             border-radius:12px !important;
             overflow:hidden !important;
-            cursor:text !important;
+            cursor:default !important;
         }
         [data-testid="stDateInput"] [data-baseweb="base-input"],
         [data-testid="stNumberInput"] [data-baseweb="input"],
@@ -837,7 +837,7 @@ st.markdown(
             box-shadow:none !important;
             -webkit-text-fill-color:var(--black) !important;
             caret-color:#101514 !important;
-            cursor:text !important;
+            cursor:default !important;
             opacity:1 !important;
         }
         [data-testid="stTextInput"],
@@ -849,7 +849,7 @@ st.markdown(
         [data-testid="stDateInput"],
         [data-testid="stDateInput"] [data-baseweb="input"],
         [data-testid="stDateInput"] [data-baseweb="base-input"] {
-            cursor:text !important;
+            cursor:default !important;
         }
         [data-testid="stSelectbox"],
         [data-testid="stSelectbox"] *,
