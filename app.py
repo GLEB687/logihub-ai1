@@ -779,15 +779,82 @@ st.markdown(
         .stButton > button[kind="primary"] { color:var(--black); background:var(--acid); box-shadow:0 12px 25px rgba(139,190,61,.22); }
         .stButton > button[kind="primary"]:hover { color:var(--black); background:#B9F34E; box-shadow:0 16px 30px rgba(139,190,61,.28); }
         .stButton > button:not([kind="primary"]) { color:white; background:var(--black); border-color:var(--black); }
-        /* Cloud parity: keep the original controls and colours intact while
-           forcing only their text to remain readable in hosted browsers. */
+        /* Hosted Streamlit must match the original local light UI exactly.
+           Pin the geometry and colours instead of inheriting browser/cloud
+           theme values (which caused black steppers and uneven rows). */
+        html, body, .stApp { color-scheme:light !important; }
+
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div,
+        [data-testid="stDateInput"] [data-baseweb="input"],
+        [data-testid="stNumberInputContainer"],
+        [data-testid="stTextInputRootElement"] {
+            height:44px !important;
+            min-height:44px !important;
+            box-sizing:border-box !important;
+            box-shadow:none !important;
+        }
+        [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+            color:var(--black) !important;
+            background:#FBFCFE !important;
+            border:1px solid #D7E1EC !important;
+            border-radius:12px !important;
+        }
+        [data-testid="stDateInput"] [data-baseweb="input"],
+        [data-testid="stNumberInputContainer"],
+        [data-testid="stTextInputRootElement"] {
+            color:var(--black) !important;
+            background:#F0F2F6 !important;
+            border:1px solid #F0F2F6 !important;
+            border-radius:8px !important;
+            overflow:hidden !important;
+        }
+        [data-testid="stDateInput"] [data-baseweb="base-input"],
+        [data-testid="stNumberInput"] [data-baseweb="input"],
+        [data-testid="stNumberInput"] [data-baseweb="base-input"],
+        [data-testid="stTextInput"] [data-baseweb="base-input"] {
+            height:42px !important;
+            min-height:42px !important;
+            color:var(--black) !important;
+            background:transparent !important;
+            border:0 !important;
+            box-shadow:none !important;
+        }
         [data-testid="stTextInput"] input,
         [data-testid="stNumberInput"] input,
-        [data-testid="stDateInput"] input,
+        [data-testid="stDateInput"] input {
+            height:42px !important;
+            min-height:42px !important;
+            color:var(--black) !important;
+            background:transparent !important;
+            border:0 !important;
+            border-radius:0 !important;
+            box-shadow:none !important;
+            -webkit-text-fill-color:var(--black) !important;
+            opacity:1 !important;
+        }
         [data-testid="stSelectbox"] [data-baseweb="select"] div[value] {
             color:var(--black) !important;
             -webkit-text-fill-color:var(--black) !important;
             opacity:1 !important;
+        }
+        [data-testid="stNumberInput"] button {
+            width:32px !important;
+            height:42px !important;
+            min-height:42px !important;
+            padding:0 !important;
+            color:#31333F !important;
+            background:#F0F2F6 !important;
+            border:0 !important;
+            border-radius:0 !important;
+            box-shadow:none !important;
+        }
+        [data-testid="stNumberInput"] button:hover {
+            color:#101514 !important;
+            background:#E8EBF0 !important;
+        }
+        [data-testid="stNumberInput"] button svg {
+            color:#31333F !important;
+            fill:#31333F !important;
         }
         [data-testid="stTextInput"] input::placeholder,
         [data-testid="stDateInput"] input::placeholder {
@@ -800,6 +867,53 @@ st.markdown(
             color:#34445B !important;
             -webkit-text-fill-color:#34445B !important;
             opacity:1 !important;
+        }
+        [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:not(:checked)) > div:first-child {
+            background:#FFFFFF !important;
+            border:1px solid rgba(49,51,63,.35) !important;
+        }
+        [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:not(:checked)) > div:first-child > div {
+            background:#FFFFFF !important;
+        }
+        [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+            background:#FF4B4B !important;
+            border:0 !important;
+        }
+        [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
+            background:#FFFFFF !important;
+        }
+        [data-testid="stCheckbox"] label[data-baseweb="checkbox"]:has(input:not(:checked)) > span:first-child {
+            background:#FFFFFF !important;
+            border:1px solid rgba(49,51,63,.35) !important;
+            box-shadow:none !important;
+        }
+        [data-testid="stDownloadButton"] button {
+            height:44px !important;
+            min-height:44px !important;
+            color:var(--black) !important;
+            background:#FFFFFF !important;
+            border:1px solid rgba(49,51,63,.20) !important;
+            border-radius:8px !important;
+            box-shadow:none !important;
+        }
+        [data-testid="stDownloadButton"] button p,
+        [data-testid="stDownloadButton"] button span {
+            color:var(--black) !important;
+            -webkit-text-fill-color:var(--black) !important;
+        }
+        [data-testid="stFormSubmitButton"] button {
+            height:44px !important;
+            min-height:44px !important;
+            color:#FFFFFF !important;
+            background:#FF4B4B !important;
+            border:1px solid #FF4B4B !important;
+            border-radius:8px !important;
+            box-shadow:none !important;
+        }
+        [data-testid="stFormSubmitButton"] button p,
+        [data-testid="stFormSubmitButton"] button span {
+            color:#FFFFFF !important;
+            -webkit-text-fill-color:#FFFFFF !important;
         }
         [data-testid="stAlert"] [data-testid="stAlertContainer"] {
             color:#064A78 !important;
