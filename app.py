@@ -792,21 +792,27 @@ st.markdown(
             min-height:44px !important;
             box-sizing:border-box !important;
             box-shadow:none !important;
+            color:var(--black) !important;
+            background:#FBFCFE !important;
+            border:1px solid #D7E1EC !important;
+            border-radius:12px !important;
         }
         [data-testid="stSelectbox"] [data-baseweb="select"] > div {
             color:var(--black) !important;
             background:#FBFCFE !important;
             border:1px solid #D7E1EC !important;
             border-radius:12px !important;
+            cursor:pointer !important;
         }
         [data-testid="stDateInput"] [data-baseweb="input"],
         [data-testid="stNumberInputContainer"],
         [data-testid="stTextInputRootElement"] {
             color:var(--black) !important;
-            background:#F0F2F6 !important;
-            border:1px solid #F0F2F6 !important;
-            border-radius:8px !important;
+            background:#FBFCFE !important;
+            border:1px solid #D7E1EC !important;
+            border-radius:12px !important;
             overflow:hidden !important;
+            cursor:text !important;
         }
         [data-testid="stDateInput"] [data-baseweb="base-input"],
         [data-testid="stNumberInput"] [data-baseweb="input"],
@@ -830,7 +836,26 @@ st.markdown(
             border-radius:0 !important;
             box-shadow:none !important;
             -webkit-text-fill-color:var(--black) !important;
+            caret-color:#101514 !important;
+            cursor:text !important;
             opacity:1 !important;
+        }
+        [data-testid="stTextInput"],
+        [data-testid="stTextInput"] [data-baseweb="input"],
+        [data-testid="stTextInput"] [data-baseweb="base-input"],
+        [data-testid="stNumberInput"],
+        [data-testid="stNumberInput"] [data-baseweb="input"],
+        [data-testid="stNumberInput"] [data-baseweb="base-input"],
+        [data-testid="stDateInput"],
+        [data-testid="stDateInput"] [data-baseweb="input"],
+        [data-testid="stDateInput"] [data-baseweb="base-input"] {
+            cursor:text !important;
+        }
+        [data-testid="stSelectbox"],
+        [data-testid="stSelectbox"] *,
+        [data-testid="stCheckbox"] label,
+        [data-testid="stRadio"] label {
+            cursor:pointer !important;
         }
         [data-testid="stSelectbox"] [data-baseweb="select"] div[value] {
             color:var(--black) !important;
@@ -847,6 +872,7 @@ st.markdown(
             border:0 !important;
             border-radius:0 !important;
             box-shadow:none !important;
+            cursor:pointer !important;
         }
         [data-testid="stNumberInput"] button:hover {
             color:#101514 !important;
