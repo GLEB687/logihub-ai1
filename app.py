@@ -779,85 +779,38 @@ st.markdown(
         .stButton > button[kind="primary"] { color:var(--black); background:var(--acid); box-shadow:0 12px 25px rgba(139,190,61,.22); }
         .stButton > button[kind="primary"]:hover { color:var(--black); background:#B9F34E; box-shadow:0 16px 30px rgba(139,190,61,.28); }
         .stButton > button:not([kind="primary"]) { color:white; background:var(--black); border-color:var(--black); }
-        /* Keep Streamlit Cloud widgets readable across browser themes and
-           BaseWeb style changes. Browser translators can otherwise make the
-           selected values appear white on white. */
-        .stApp input,
-        .stApp textarea,
-        .stApp [data-baseweb="select"] > div,
-        .stApp [data-baseweb="select"] span,
-        .stApp [data-baseweb="select"] div[role="button"] {
+        /* Cloud parity: keep the original controls and colours intact while
+           forcing only their text to remain readable in hosted browsers. */
+        [data-testid="stTextInput"] input,
+        [data-testid="stNumberInput"] input,
+        [data-testid="stDateInput"] input,
+        [data-testid="stSelectbox"] [data-baseweb="select"] div[value] {
             color:var(--black) !important;
             -webkit-text-fill-color:var(--black) !important;
             opacity:1 !important;
         }
-        .stApp input::placeholder, .stApp textarea::placeholder {
+        [data-testid="stTextInput"] input::placeholder,
+        [data-testid="stDateInput"] input::placeholder {
             color:#7A8984 !important;
             -webkit-text-fill-color:#7A8984 !important;
             opacity:1 !important;
         }
-        [data-testid="stSelectbox"] svg, [data-testid="stDateInput"] svg {
-            fill:#41504C !important;
-            color:#41504C !important;
-        }
-        [data-testid="stRadio"] label,
         [data-testid="stRadio"] label p,
-        [data-testid="stRadio"] label div,
-        [data-testid="stCheckbox"] label,
-        [data-testid="stCheckbox"] label p,
-        [data-testid="stCheckbox"] label div {
+        [data-testid="stCheckbox"] label p {
             color:#34445B !important;
             -webkit-text-fill-color:#34445B !important;
             opacity:1 !important;
         }
-        [data-testid="stNumberInput"] button {
-            background:var(--black) !important;
-            border-color:var(--black) !important;
-            color:white !important;
+        [data-testid="stAlert"] [data-testid="stAlertContainer"] {
+            color:#064A78 !important;
+            background:#E6F4FF !important;
+            border:1px solid #B8DDF5 !important;
+            opacity:1 !important;
         }
-        [data-testid="stNumberInput"] button svg {
-            fill:white !important;
-            color:white !important;
-        }
-        [data-testid="stSlider"] [role="slider"] {
-            background:var(--acid) !important;
-            border-color:#8FCB38 !important;
-        }
-        [data-testid="stCheckbox"] [aria-checked="true"],
-        [data-testid="stRadio"] [aria-checked="true"] {
-            accent-color:#8FCB38 !important;
-        }
-        [data-testid="stFormSubmitButton"] button {
-            color:var(--black) !important;
-            background:var(--acid) !important;
-            border:0 !important;
-            min-height:3.25rem;
-            font-weight:850;
-            border-radius:14px;
-            box-shadow:0 12px 25px rgba(139,190,61,.22);
-        }
-        [data-testid="stDownloadButton"] button {
-            color:white !important;
-            background:var(--black) !important;
-            border-color:var(--black) !important;
-            border-radius:12px;
-            font-weight:750;
-        }
-        [data-testid="stFormSubmitButton"] button p,
-        [data-testid="stFormSubmitButton"] button span {
-            color:var(--black) !important;
-            -webkit-text-fill-color:var(--black) !important;
-        }
-        [data-testid="stDownloadButton"] button p,
-        [data-testid="stDownloadButton"] button span {
-            color:white !important;
-            -webkit-text-fill-color:white !important;
-        }
-        [data-testid="stSelectbox"] [data-baseweb="select"] > div,
-        [data-testid="stDateInput"] input,
-        [data-testid="stNumberInput"] input,
-        [data-testid="stTextInput"] input {
-            background:#FFFFFF !important;
+        [data-testid="stAlert"] [data-testid="stAlertContainer"] * {
+            color:#064A78 !important;
+            -webkit-text-fill-color:#064A78 !important;
+            opacity:1 !important;
         }
         .booking-head { margin:.2rem 0 1rem; }
         .booking-kicker { color:#177760; font-size:.7rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
