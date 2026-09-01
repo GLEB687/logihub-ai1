@@ -74,210 +74,180 @@ CITIES = {
 }
 
 
-# Real European carrier profiles. Prices, availability and reliability remain
-# independent LogiHub estimates because public carrier websites do not expose a
-# single live tariff table for every route, cargo type and service combination.
+# Each profile below represents one real, mode-specific service. Keeping modes
+# separate prevents an Air search from inheriting a Roadfreight service name or
+# link. Prices and reliability remain independent LogiHub estimates: carrier
+# websites do not publish one live tariff table for every route and cargo mix.
+def service_profile(
+    profile_id: str,
+    name: str,
+    service: str,
+    mode: str,
+    logo: str,
+    domain: str,
+    source_url: str,
+    rating: int,
+    base_fee: float,
+    km_rate: float,
+    kg_rate: float,
+    fuel_rate: float,
+    speed_factor: float,
+    handling_days: int,
+    route_factor: float,
+    color: str,
+    hazardous: bool = True,
+    temperature: bool = True,
+) -> dict:
+    return {
+        "profile_id": profile_id,
+        "name": name,
+        "service": service,
+        "mode": mode,
+        "logo": logo,
+        "logo_url": f"https://www.google.com/s2/favicons?domain={domain}&sz=128",
+        "source_url": source_url,
+        "rating": rating,
+        "base_fee": base_fee,
+        "km_rate": km_rate,
+        "kg_rate": kg_rate,
+        "fuel_rate": fuel_rate,
+        "speed_factor": speed_factor,
+        "handling_days": handling_days,
+        "route_factor": route_factor,
+        "hazardous": hazardous,
+        "temperature": temperature,
+        "color": color,
+    }
+
+
 CARRIERS = [
-    {
-        "name": "DHL Freight",
-        "service": "DHL Road Freight Priority / Standard",
-        "logo": "DHL",
-        "logo_url": "https://www.google.com/s2/favicons?domain=dhl.com&sz=128",
-        "source_url": "https://www.dhl.com/de-en/home/freight/european-road-freight.html",
-        "rating": 96,
-        "base_fee": 290,
-        "km_rate": 0.76,
-        "kg_rate": 0.052,
-        "fuel_rate": 0.16,
-        "speed_factor": 1.15,
-        "modes": ["Road", "Rail", "Air"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#D40511",
-    },
-    {
-        "name": "DSV Road",
-        "service": "DSV Groupage",
-        "logo": "DSV",
-        "logo_url": "https://www.google.com/s2/favicons?domain=dsv.com&sz=128",
-        "source_url": "https://www.dsv.com/en/our-solutions/modes-of-transport/road-transport/groupage",
-        "rating": 95,
-        "base_fee": 265,
-        "km_rate": 0.72,
-        "kg_rate": 0.050,
-        "fuel_rate": 0.15,
-        "speed_factor": 1.10,
-        "modes": ["Road", "Rail", "Air", "Sea"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#E30613",
-    },
-    {
-        "name": "DACHSER",
-        "service": "DACHSER European Logistics",
-        "logo": "DAC",
-        "logo_url": "https://www.google.com/s2/favicons?domain=dachser.com&sz=128",
-        "source_url": "https://www.dachser.com/en/european-logistics-51",
-        "rating": 95,
-        "base_fee": 250,
-        "km_rate": 0.69,
-        "kg_rate": 0.047,
-        "fuel_rate": 0.14,
-        "speed_factor": 1.08,
-        "modes": ["Road", "Rail"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#F6A800",
-    },
-    {
-        "name": "Rhenus Logistics",
-        "service": "Rhenus Road Freight Groupage",
-        "logo": "RH",
-        "logo_url": "https://www.google.com/s2/favicons?domain=rhenus.group&sz=128",
-        "source_url": "https://www.rhenus.group/de/en/road-transport/",
-        "rating": 93,
-        "base_fee": 235,
-        "km_rate": 0.66,
-        "kg_rate": 0.045,
-        "fuel_rate": 0.14,
-        "speed_factor": 1.02,
-        "modes": ["Road", "Rail", "Sea"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#003B5C",
-    },
-    {
-        "name": "Hellmann Worldwide Logistics",
-        "service": "Hellmann Roadfreight",
-        "logo": "HWL",
-        "logo_url": "https://www.google.com/s2/favicons?domain=hellmann.com&sz=128",
-        "source_url": "https://www.hellmann.com/en/products/roadfreight",
-        "rating": 94,
-        "base_fee": 245,
-        "km_rate": 0.68,
-        "kg_rate": 0.048,
-        "fuel_rate": 0.15,
-        "speed_factor": 1.07,
-        "modes": ["Road", "Rail", "Air", "Sea"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#E2231A",
-    },
-    {
-        "name": "Kuehne+Nagel",
-        "service": "Kuehne+Nagel Road Logistics",
-        "logo": "K+N",
-        "logo_url": "https://www.google.com/s2/favicons?domain=kuehne-nagel.com&sz=128",
-        "source_url": "https://home.kuehne-nagel.com/en/services/road-transport",
-        "rating": 96,
-        "base_fee": 285,
-        "km_rate": 0.74,
-        "kg_rate": 0.053,
-        "fuel_rate": 0.15,
-        "speed_factor": 1.12,
-        "modes": ["Road", "Rail", "Air", "Sea"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#004B8D",
-    },
-    {
-        "name": "Girteka Logistics",
-        "service": "Girteka European FTL",
-        "logo": "GIR",
-        "logo_url": "https://www.google.com/s2/favicons?domain=girteka.eu&sz=128",
-        "source_url": "https://www.girteka.eu/",
-        "rating": 92,
-        "base_fee": 220,
-        "km_rate": 0.62,
-        "kg_rate": 0.042,
-        "fuel_rate": 0.13,
-        "speed_factor": 1.03,
-        "modes": ["Road"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#00A651",
-    },
-    {
-        "name": "CEVA Logistics",
-        "service": "CEVA Ground & Rail",
-        "logo": "CEVA",
-        "logo_url": "https://www.google.com/s2/favicons?domain=cevalogistics.com&sz=128",
-        "source_url": "https://www.cevalogistics.com/en/what-we-do/ground-and-rail",
-        "rating": 93,
-        "base_fee": 270,
-        "km_rate": 0.70,
-        "kg_rate": 0.050,
-        "fuel_rate": 0.15,
-        "speed_factor": 1.05,
-        "modes": ["Road", "Rail", "Air", "Sea"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#E4002B",
-    },
-    {
-        "name": "XPO Logistics Europe",
-        "service": "XPO European LTL / FTL",
-        "logo": "XPO",
-        "logo_url": "https://www.google.com/s2/favicons?domain=xpo.com&sz=128",
-        "source_url": "https://europe.xpo.com/en/transport-solutions/",
-        "rating": 92,
-        "base_fee": 230,
-        "km_rate": 0.64,
-        "kg_rate": 0.044,
-        "fuel_rate": 0.14,
-        "speed_factor": 1.00,
-        "modes": ["Road"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#F15A22",
-    },
-    {
-        "name": "GEODIS",
-        "service": "GEODIS Road Transport",
-        "logo": "GEO",
-        "logo_url": "https://www.google.com/s2/favicons?domain=geodis.com&sz=128",
-        "source_url": "https://geodis.com/transport-services/road-transportation",
-        "rating": 93,
-        "base_fee": 260,
-        "km_rate": 0.70,
-        "kg_rate": 0.049,
-        "fuel_rate": 0.15,
-        "speed_factor": 1.08,
-        "modes": ["Road", "Rail", "Air", "Sea"],
-        "customs": True,
-        "insurance": True,
-        "door": True,
-        "hazardous": True,
-        "temperature": True,
-        "color": "#5B2C83",
-    },
+    # Road freight
+    service_profile(
+        "dsv-road", "DSV Road", "DSV Groupage / Direct", "Road", "DSV", "dsv.com",
+        "https://www.dsv.com/en/our-solutions/modes-of-transport/road-transport",
+        95, 260, 0.72, 0.050, 0.15, 1.08, 1, 1.18, "#E30613",
+    ),
+    service_profile(
+        "rhenus-road", "Rhenus Logistics", "Rhenus European Groupage / LTL / FTL", "Road", "RH", "rhenus.group",
+        "https://www.rhenus.group/de/en/road-transport/",
+        93, 235, 0.66, 0.045, 0.14, 1.02, 1, 1.18, "#003B5C",
+    ),
+    service_profile(
+        "dachser-road", "DACHSER", "DACHSER European Logistics", "Road", "DAC", "dachser.com",
+        "https://www.dachser.com/en/european-logistics-51",
+        95, 250, 0.69, 0.047, 0.14, 1.08, 1, 1.18, "#F6A800",
+    ),
+    service_profile(
+        "girteka-road", "Girteka Logistics", "Girteka European FTL", "Road", "GIR", "girteka.eu",
+        "https://www.girteka.eu/",
+        92, 220, 0.62, 0.042, 0.13, 1.03, 1, 1.18, "#00A651",
+    ),
+    service_profile(
+        "xpo-road", "XPO Logistics Europe", "XPO European LTL / FTL", "Road", "XPO", "xpo.com",
+        "https://europe.xpo.com/en/transport-solutions/",
+        92, 230, 0.64, 0.044, 0.14, 1.00, 1, 1.18, "#F15A22", temperature=False,
+    ),
+    service_profile(
+        "hellmann-road", "Hellmann Worldwide Logistics", "Hellmann Roadfreight", "Road", "HWL", "hellmann.com",
+        "https://www.hellmann.com/en/products/roadfreight",
+        94, 245, 0.68, 0.048, 0.15, 1.07, 1, 1.18, "#E2231A",
+    ),
+
+    # Rail freight and intermodal main-haul services
+    service_profile(
+        "db-cargo-rail", "DB Cargo", "European Rail Freight Services", "Rail", "DB", "dbcargo.com",
+        "https://www.dbcargo.com/rail-de-en/services",
+        94, 460, 0.43, 0.026, 0.08, 1.00, 2, 1.12, "#EC0016", temperature=False,
+    ),
+    service_profile(
+        "rcg-rail", "ÖBB Rail Cargo Group", "Intermodal Logistics", "Rail", "RCG", "railcargo.com",
+        "https://www.railcargo.com/en/services/intermodal-logistics",
+        95, 475, 0.41, 0.025, 0.08, 1.04, 2, 1.12, "#D71920",
+    ),
+    service_profile(
+        "hupac-rail", "Hupac Intermodal", "European Shuttle Net", "Rail", "HUP", "hupac.com",
+        "https://www.hupac.com/",
+        93, 430, 0.38, 0.023, 0.07, 1.08, 2, 1.10, "#007A3D",
+    ),
+    service_profile(
+        "lineas-rail", "Lineas", "European Rail Freight", "Rail", "LIN", "lineas.net",
+        "https://lineas.net/en",
+        92, 420, 0.39, 0.024, 0.08, 0.98, 2, 1.12, "#F4C300",
+    ),
+    service_profile(
+        "dsv-rail", "DSV Rail", "European Rail Freight", "Rail", "DSV", "dsv.com",
+        "https://www.dsv.com/en/our-solutions/modes-of-transport/rail-freight/rail-freight-transport",
+        93, 485, 0.44, 0.027, 0.09, 1.02, 2, 1.12, "#E30613",
+    ),
+    service_profile(
+        "sbb-rail", "SBB Cargo", "Cargo Rail / Cargo Express", "Rail", "SBB", "sbbcargo.com",
+        "https://www.sbbcargo.com/de/angebot/transportleistungen/einzelwagen-wagengruppen.html",
+        94, 470, 0.42, 0.026, 0.08, 1.03, 2, 1.11, "#E2001A",
+    ),
+
+    # Air cargo and air-freight forwarding
+    service_profile(
+        "lufthansa-air", "Lufthansa Cargo", "General Cargo · td.Pro / td.Flash", "Air", "LH", "lufthansa-cargo.com",
+        "https://www.lufthansa-cargo.com/en/general-cargo",
+        96, 690, 0.13, 2.05, 0.25, 1.10, 1, 1.05, "#05164D",
+    ),
+    service_profile(
+        "dsv-air", "DSV Air", "Air Freight / AIR Direct", "Air", "DSV", "dsv.com",
+        "https://www.dsv.com/en/our-solutions/modes-of-transport/air-freight",
+        95, 780, 0.14, 2.15, 0.24, 1.05, 1, 1.05, "#E30613",
+    ),
+    service_profile(
+        "dhl-air", "DHL Global Forwarding", "Air Freight", "Air", "DHL", "dhl.com",
+        "https://www.dhl.com/de-en/home/global-forwarding.html",
+        96, 820, 0.15, 2.25, 0.24, 1.08, 1, 1.05, "#D40511",
+    ),
+    service_profile(
+        "turkish-air", "Turkish Cargo", "TK Smart / TK Premium", "Air", "TK", "turkishcargo.com",
+        "https://www.turkishcargo.com/en",
+        93, 650, 0.12, 1.95, 0.25, 1.00, 1, 1.08, "#C8102E",
+    ),
+    service_profile(
+        "afkl-air", "Air France KLM Martinair Cargo", "General Cargo", "Air", "AFK", "afklcargo.com",
+        "https://www.afklcargo.com/",
+        94, 720, 0.13, 2.05, 0.24, 1.07, 1, 1.06, "#1B4F9C",
+    ),
+    service_profile(
+        "cargolux-air", "Cargolux", "General Air Cargo", "Air", "CV", "cargolux.com",
+        "https://www.cargolux.com/",
+        94, 740, 0.13, 2.10, 0.25, 1.04, 1, 1.06, "#E2231A",
+    ),
+
+    # Ocean and short-sea freight
+    service_profile(
+        "maersk-sea", "Maersk", "Ocean Transport", "Sea", "MAE", "maersk.com",
+        "https://www.maersk.com/transportation-services/ocean-transport",
+        95, 620, 0.30, 0.018, 0.10, 1.04, 4, 1.35, "#00AEEF",
+    ),
+    service_profile(
+        "msc-sea", "MSC", "Dry Cargo Shipping", "Sea", "MSC", "msc.com",
+        "https://www.msc.com/en/solutions/dry-cargo",
+        94, 590, 0.28, 0.017, 0.10, 1.02, 4, 1.35, "#FFB81C",
+    ),
+    service_profile(
+        "hapag-sea", "Hapag-Lloyd", "Container Shipping", "Sea", "HLC", "hapag-lloyd.com",
+        "https://www.hapag-lloyd.com/en/home.html",
+        94, 610, 0.29, 0.018, 0.10, 1.03, 4, 1.35, "#F58220",
+    ),
+    service_profile(
+        "dsv-sea", "DSV Sea", "Sea Freight", "Sea", "DSV", "dsv.com",
+        "https://www.dsv.com/en/our-solutions/modes-of-transport/sea-freight",
+        93, 640, 0.31, 0.019, 0.10, 1.00, 4, 1.35, "#E30613",
+    ),
+    service_profile(
+        "dhl-sea", "DHL Global Forwarding", "Ocean Freight", "Sea", "DHL", "dhl.com",
+        "https://www.dhl.com/de-en/home/global-forwarding.html",
+        95, 660, 0.32, 0.019, 0.10, 1.05, 4, 1.35, "#D40511",
+    ),
+    service_profile(
+        "cma-sea", "CMA CGM", "Container Shipping", "Sea", "CMA", "cma-cgm.com",
+        "https://www.cma-cgm.com/",
+        93, 600, 0.29, 0.017, 0.10, 1.01, 4, 1.35, "#003B71",
+    ),
 ]
 
 
@@ -292,10 +262,7 @@ CARGO_RISK_FACTOR = {
     "Textiles": 1.02,
 }
 
-MODE_COST_FACTOR = {"Road": 1.00, "Rail": 0.80, "Air": 4.30, "Sea": 0.64}
-MODE_WEIGHT_FACTOR = {"Road": 1.00, "Rail": 0.72, "Air": 3.20, "Sea": 0.60}
-MODE_SPEED_KM_DAY = {"Road": 620, "Rail": 760, "Air": 2600, "Sea": 430}
-MODE_HANDLING_DAYS = {"Road": 1, "Rail": 2, "Air": 1, "Sea": 4}
+MODE_SPEED_KM_DAY = {"Road": 650, "Rail": 850, "Air": 3000, "Sea": 500}
 MODE_CO2_G_TON_KM = {"Road": 62, "Rail": 22, "Air": 602, "Sea": 16}
 
 
@@ -316,66 +283,107 @@ def haversine_km(point_a: tuple[float, float], point_b: tuple[float, float]) -> 
     return 6371 * 2 * math.asin(math.sqrt(value))
 
 
-def choose_mode(carrier: dict, requested_mode: str, distance: float, weight: float, days: int) -> str | None:
-    """Choose a compatible transport mode for a demo carrier."""
-    if requested_mode != "Let LogiHub choose":
-        return requested_mode if requested_mode in carrier["modes"] else None
+def mode_suitability(mode: str, distance: float, weight: float, days: int, priority: str) -> float:
+    """Estimate how well a mode fits the shipment before carrier ranking."""
+    if mode == "Road":
+        score = 0.95
+        if distance > 1500:
+            score -= 0.12
+        if weight > 15000:
+            score -= 0.08
+        if priority == "Fastest delivery":
+            score += 0.03
+    elif mode == "Rail":
+        score = 0.48 + min(distance / 2500, 1) * 0.18 + min(weight / 20000, 1) * 0.20
+        if days >= 4:
+            score += 0.12
+        if distance < 300:
+            score -= 0.20
+        if priority == "Highest reliability":
+            score += 0.05
+    elif mode == "Air":
+        score = 0.45
+        if days <= 2:
+            score += 0.42
+        elif days <= 4:
+            score += 0.28
+        else:
+            score += 0.08
+        if weight <= 1500:
+            score += 0.10
+        if priority == "Fastest delivery":
+            score += 0.12
+        if priority == "Lowest price":
+            score -= 0.18
+    else:  # Sea
+        score = 0.32
+        if distance >= 1200:
+            score += 0.25
+        if weight >= 6000:
+            score += 0.20
+        if days >= 8:
+            score += 0.18
+        if distance < 700:
+            score -= 0.18
+        if days < 5:
+            score -= 0.25
+        if priority == "Lowest price":
+            score += 0.12
 
-    if days <= 2 and "Air" in carrier["modes"]:
-        return "Air"
-    if (weight >= 8000 or distance >= 950) and "Rail" in carrier["modes"]:
-        return "Rail"
-    if distance >= 1500 and days >= 8 and "Sea" in carrier["modes"]:
-        return "Sea"
-    if "Road" in carrier["modes"]:
-        return "Road"
+    return max(0.05, min(1.0, score))
 
-    return min(carrier["modes"], key=lambda mode: MODE_HANDLING_DAYS[mode])
+
+def mode_reason(mode: str) -> str:
+    return {
+        "Road": "direct European road coverage and flexible first/last-mile access",
+        "Rail": "a lower-emission rail main haul with road terminal connections",
+        "Air": "the shortest line-haul transit through European cargo airports",
+        "Sea": "cost-efficient container transport with inland port connections",
+    }[mode]
 
 
 def calculate_offers(search: dict) -> list[dict]:
     origin_coordinates = CITIES[search["origin_country"]][search["origin_city"]]
     destination_coordinates = CITIES[search["destination_country"]][search["destination_city"]]
 
-    # Road routes are longer than straight-line distance. 1.18 is a simple MVP approximation.
-    distance = max(80, haversine_km(origin_coordinates, destination_coordinates) * 1.18)
+    direct_distance = max(80, haversine_km(origin_coordinates, destination_coordinates))
     allowed_days = max(1, (search["delivery_date"] - search["ready_date"]).days + search["flex_days"])
     offers = []
 
     for carrier in CARRIERS:
+        # An explicitly selected mode is a strict filter, not a pricing hint.
+        if search["mode"] != "Let LogiHub choose" and carrier["mode"] != search["mode"]:
+            continue
         if search["hazardous"] and not carrier["hazardous"]:
             continue
         if search["temperature"] and not carrier["temperature"]:
             continue
-        if search["customs"] and not carrier["customs"]:
-            continue
-        if search["insurance"] and not carrier["insurance"]:
-            continue
-        if search["door"] and not carrier["door"]:
+
+        mode = carrier["mode"]
+        suitability = (
+            1.0
+            if search["mode"] != "Let LogiHub choose"
+            else mode_suitability(mode, direct_distance, search["weight"], allowed_days, search["priority"])
+        )
+        # Automatic search removes clearly impractical modes. An explicit mode
+        # remains available, provided it can meet the requested delivery date.
+        if search["mode"] == "Let LogiHub choose" and suitability < 0.25:
             continue
 
-        mode = choose_mode(
-            carrier,
-            search["mode"],
-            distance,
-            search["weight"],
-            allowed_days,
-        )
-        if mode is None:
-            continue
+        distance = direct_distance * carrier["route_factor"]
 
         transit_days = max(
             1,
             math.ceil(distance / (MODE_SPEED_KM_DAY[mode] * carrier["speed_factor"]))
-            + MODE_HANDLING_DAYS[mode],
+            + carrier["handling_days"],
         )
         if transit_days > allowed_days:
             continue
 
         transport_cost = (
             carrier["base_fee"]
-            + distance * carrier["km_rate"] * MODE_COST_FACTOR[mode]
-            + search["weight"] * carrier["kg_rate"] * MODE_WEIGHT_FACTOR[mode]
+            + distance * carrier["km_rate"]
+            + search["weight"] * carrier["kg_rate"]
         )
         transport_cost *= CARGO_RISK_FACTOR[search["cargo_type"]]
 
@@ -391,13 +399,14 @@ def calculate_offers(search: dict) -> list[dict]:
         fuel_surcharge = transport_cost * carrier["fuel_rate"]
         customs_fee = 165 if search["customs"] else 0
         insurance_fee = max(45, search["declared_value"] * 0.003) if search["insurance"] else 0
-        door_fee = 135 if search["door"] else 0
+        door_fee = ({"Road": 135, "Rail": 220, "Air": 280, "Sea": 320}[mode] if search["door"] else 0)
         total_price = transport_cost + fuel_surcharge + customs_fee + insurance_fee + door_fee
 
         co2_kg = distance * (search["weight"] / 1000) * MODE_CO2_G_TON_KM[mode] / 1000
 
         offers.append(
             {
+                "profile_id": carrier["profile_id"],
                 "carrier": carrier["name"],
                 "service": carrier["service"],
                 "logo": carrier["logo"],
@@ -406,6 +415,8 @@ def calculate_offers(search: dict) -> list[dict]:
                 "rating": carrier["rating"],
                 "color": carrier["color"],
                 "mode": mode,
+                "mode_fit": suitability,
+                "mode_reason": mode_reason(mode),
                 "distance": round(distance),
                 "days": transit_days,
                 "arrival_date": search["ready_date"] + timedelta(days=transit_days),
@@ -428,10 +439,10 @@ def calculate_offers(search: dict) -> list[dict]:
     min_days, max_days = min(transit_times), max(transit_times)
 
     weights = {
-        "Best balance": (0.45, 0.25, 0.30),
-        "Lowest price": (0.75, 0.10, 0.15),
-        "Fastest delivery": (0.15, 0.70, 0.15),
-        "Highest reliability": (0.15, 0.10, 0.75),
+        "Best balance": (0.30, 0.20, 0.25, 0.25),
+        "Lowest price": (0.62, 0.08, 0.15, 0.15),
+        "Fastest delivery": (0.08, 0.58, 0.19, 0.15),
+        "Highest reliability": (0.10, 0.10, 0.65, 0.15),
     }[search["priority"]]
 
     for offer in offers:
@@ -444,24 +455,25 @@ def calculate_offers(search: dict) -> list[dict]:
                 weights[0] * price_score
                 + weights[1] * speed_score
                 + weights[2] * reliability_score
+                + weights[3] * offer["mode_fit"]
             )
         )
 
     offers.sort(key=lambda offer: (-offer["match_score"], offer["price"]))
 
-    cheapest_carrier = min(offers, key=lambda offer: offer["price"])["carrier"]
-    fastest_carrier = min(offers, key=lambda offer: offer["days"])["carrier"]
-    reliable_carrier = max(offers, key=lambda offer: offer["rating"])["carrier"]
+    cheapest_profile = min(offers, key=lambda offer: offer["price"])["profile_id"]
+    fastest_profile = min(offers, key=lambda offer: offer["days"])["profile_id"]
+    reliable_profile = max(offers, key=lambda offer: offer["rating"])["profile_id"]
 
     for index, offer in enumerate(offers):
         badges = []
         if index == 0:
             badges.append("Recommended")
-        if offer["carrier"] == cheapest_carrier:
+        if offer["profile_id"] == cheapest_profile:
             badges.append("Lowest price")
-        if offer["carrier"] == fastest_carrier:
+        if offer["profile_id"] == fastest_profile:
             badges.append("Fastest")
-        if offer["carrier"] == reliable_carrier:
+        if offer["profile_id"] == reliable_profile:
             badges.append("Most reliable")
         offer["badges"] = badges
 
@@ -472,15 +484,29 @@ def format_euro(value: float) -> str:
     return f"€{value:,.0f}".replace(",", " ")
 
 
-def shipment_documents(search: dict) -> list[str]:
+def shipment_documents(search: dict, offer: dict) -> list[str]:
     """Return a concise, non-binding document checklist for the demo brief."""
-    documents = ["Commercial invoice", "Packing list", "CMR consignment note"]
+    transport_document = {
+        "Road": "CMR consignment note",
+        "Rail": "CIM rail consignment note",
+        "Air": "Air Waybill (AWB)",
+        "Sea": "Bill of Lading / Sea Waybill",
+    }[offer["mode"]]
+    documents = ["Commercial invoice", "Packing list", transport_document]
     if search["customs"]:
         documents.extend(["Customs declaration", "EORI number", "Commodity / HS code"])
     if search["hazardous"]:
-        documents.extend(["Safety Data Sheet (SDS)", "ADR dangerous-goods declaration"])
+        dangerous_goods_document = {
+            "Road": "ADR dangerous-goods declaration",
+            "Rail": "RID dangerous-goods declaration",
+            "Air": "IATA Shipper's Declaration for Dangerous Goods",
+            "Sea": "IMDG dangerous-goods declaration",
+        }[offer["mode"]]
+        documents.extend(["Safety Data Sheet (SDS)", dangerous_goods_document])
     if search["temperature"]:
         documents.append("Temperature-handling instructions")
+    if offer["mode"] == "Sea":
+        documents.append("Verified Gross Mass (VGM), when containerised")
     return documents
 
 
@@ -502,7 +528,7 @@ def shipment_risks(search: dict, offer: dict) -> list[str]:
 
 def proposal_text(search: dict, offer: dict) -> str:
     """Create an email-ready proposal that can be downloaded without extra packages."""
-    documents = "\n".join(f"- {item}" for item in shipment_documents(search))
+    documents = "\n".join(f"- {item}" for item in shipment_documents(search, offer))
     return f"""LOGIHUB AI — ESTIMATED FREIGHT PROPOSAL
 
 Route: {search['origin_city']}, {search['origin_country']} → {search['destination_city']}, {search['destination_country']}
@@ -981,7 +1007,7 @@ st.markdown(
 )
 
 st.markdown(
-    """
+    f"""
     <div class="hero-shell">
         <div class="brand-row">
             <div class="brand">
@@ -999,15 +1025,15 @@ st.markdown(
                 <h1 class="hero-title">Move cargo.<br>Skip the chase.</h1>
                 <p class="hero-subtitle">Compare European freight options, customs support and delivery terms in one intelligent workspace.</p>
                 <div class="hero-facts">
-                    <span class="hero-fact">10 European carrier profiles</span>
+                    <span class="hero-fact">{len(CARRIERS)} mode-specific carrier profiles</span>
                     <span class="hero-fact">4 transport modes</span>
                     <span class="hero-fact">AI-assisted comparison</span>
                 </div>
             </div>
             <div class="hero-card">
                 <div class="hero-card-label">Network snapshot</div>
-                <div class="hero-card-number">10×</div>
-                <div class="hero-card-copy">One shipment brief is matched against ten researched European carrier profiles.</div>
+                <div class="hero-card-number">{len(CARRIERS)}×</div>
+                <div class="hero-card-copy">One shipment brief is matched against researched road, rail, air and sea service profiles.</div>
                 <div class="hero-card-line">Ready to compare</div>
             </div>
         </div>
@@ -1167,17 +1193,30 @@ if "offers" in st.session_state:
         '<p class="results-note">Estimated CO₂ shows the approximate emissions allocated to this shipment based on weight, distance and transport mode. Lower is greener.</p>',
         unsafe_allow_html=True,
     )
+    search_scope = (
+        "all viable road, rail, air and sea services"
+        if search["mode"] == "Let LogiHub choose"
+        else f"{search['mode']}-only services"
+    )
+    st.caption(f"Search scope: {search_scope}. Incompatible service profiles are excluded before ranking.")
 
     if not offers:
-        st.warning(
-            "No carrier profile matches all selected requirements and dates. "
-            "Try adding schedule flexibility, changing the transport mode, or removing one optional service."
-        )
+        if search["mode"] == "Let LogiHub choose":
+            st.warning(
+                "No carrier profile matches all selected cargo requirements and dates. "
+                "Try adding schedule flexibility or changing a special-handling requirement."
+            )
+        else:
+            st.warning(
+                f"No {search['mode'].lower()} service can meet the selected delivery window and handling requirements. "
+                "Try adding schedule flexibility or choose Let LogiHub choose."
+            )
     else:
         best = offers[0]
         price_difference = best["price"] - min(offer["price"] for offer in offers)
         explanation = (
             f"{best['carrier']} is the strongest match for your **{search['priority'].lower()}** priority. "
+            f"Its **{best['mode']}** service provides {best['mode_reason']}. "
             f"It delivers in **{best['days']} days**, has a **{best['rating']}% estimated reliability score**, "
             f"and costs **{format_euro(best['price'])}**."
         )
@@ -1186,7 +1225,7 @@ if "offers" in st.session_state:
 
         st.info(f"**Smart recommendation:** {explanation}")
 
-        documents = shipment_documents(search)
+        documents = shipment_documents(search, best)
         risk_notes = shipment_risks(search, best)
         document_preview = "<br>".join(f"• {item}" for item in documents[:4])
         risk_preview = "<br>".join(f"• {item}" for item in risk_notes[:3])
@@ -1211,7 +1250,7 @@ if "offers" in st.session_state:
             unsafe_allow_html=True,
         )
 
-        for rank, offer in enumerate(offers[:6], start=1):
+        for rank, offer in enumerate(offers[:8], start=1):
             with st.container(border=True):
                 if rank == 1:
                     st.markdown('<span class="top-offer"></span>', unsafe_allow_html=True)
@@ -1270,9 +1309,9 @@ if "offers" in st.session_state:
                     if offer["door_fee"]:
                         st.write(f"Door-to-door service: **{format_euro(offer['door_fee'])}**")
                     st.markdown(f"[View the carrier's official service page]({offer['source_url']})")
-                    st.caption("Independent LogiHub estimate based on route, weight, mode and Q2 2026 European road-freight market conditions. It is not a binding quote from the carrier.")
+                    st.caption("Independent LogiHub estimate based on route, weight, selected mode and illustrative 2026 European freight-market assumptions. It is not a binding quote from the carrier.")
 
-                if st.button("Select this estimate", key=f"select_{offer['carrier']}", use_container_width=True):
+                if st.button("Select this estimate", key=f"select_{offer['profile_id']}_{rank}", use_container_width=True):
                     st.session_state["selected_offer"] = offer
                     st.session_state["scroll_to_booking"] = True
                     st.rerun()
