@@ -27,6 +27,37 @@ st.set_page_config(
 )
 
 
+@st.dialog("Cookies & privacy", width="small", dismissible=False)
+def cookie_consent_dialog() -> None:
+    """Show a transparent, session-scoped consent notice on first visit."""
+    st.markdown(
+        """
+        **Your privacy matters.**
+
+        LogiHub uses essential cookies and session storage to keep form inputs,
+        workspace choices and uploaded documents available while you use this demo.
+        We do not use advertising cookies or cross-site tracking.
+        """
+    )
+    with st.expander("How this demo handles data"):
+        st.markdown(
+            """
+            - Uploaded files are processed only for the active session.
+            - This MVP does not add uploaded documents to a permanent database.
+            - You can end the session by closing the tab or clearing site data.
+            """
+        )
+
+    if st.button(
+        "Accept essential cookies & continue",
+        type="primary",
+        use_container_width=True,
+        key="accept_cookie_notice",
+    ):
+        st.session_state["cookie_consent"] = "essential"
+        st.rerun()
+
+
 # -----------------------------------------------------------------------------
 # Demo data
 # -----------------------------------------------------------------------------
@@ -1496,6 +1527,9 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+if "cookie_consent" not in st.session_state:
+    cookie_consent_dialog()
 
 st.markdown(
     f"""
