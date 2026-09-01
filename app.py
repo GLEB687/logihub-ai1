@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from datetime import date, datetime, timedelta
 from html import escape
 from uuid import uuid4
@@ -8,9 +9,19 @@ from uuid import uuid4
 import streamlit as st
 from streamlit.components.v1 import html as components_html
 
+try:
+    from openai import OpenAI
+except ImportError:  # The grounded extractive fallback still works without it.
+    OpenAI = None
+
+try:
+    from pypdf import PdfReader
+except ImportError:  # Text, Markdown and CSV uploads still work without it.
+    PdfReader = None
+
 
 st.set_page_config(
-    page_title="LogiHub AI — Freight comparison",
+    page_title="LogiHub AI — Freight operating hub",
     page_icon="🚚",
     layout="wide",
 )
@@ -74,6 +85,77 @@ CITIES = {
         "Geneva": (46.2044, 6.1432),
     },
 }
+
+
+# Curated, public primary sources for the default Knowledge Brain. These short
+# extracts are deliberately narrow: the assistant must abstain when the answer
+# is not supported by this material or by a file uploaded by the user.
+OFFICIAL_KNOWLEDGE = [
+    {
+        "title": "Union Customs Code",
+        "section": "Regulation (EU) No 952/2013, Article 70",
+        "text": (
+            "The primary basis for the customs value of goods is the transaction value: "
+            "the price actually paid or payable for goods sold for export to the customs "
+            "territory of the Union, adjusted where necessary. The total payment includes "
+            "payments made or to be made as a condition of sale of the imported goods."
+        ),
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0952",
+    },
+    {
+        "title": "Union Customs Code",
+        "section": "Regulation (EU) No 952/2013, Article 71",
+        "text": (
+            "When determining customs value under Article 70, additions may include certain "
+            "commissions and brokerage, container and packing costs, assists supplied by the "
+            "buyer, royalties or licence fees, proceeds accruing to the seller, and transport "
+            "and insurance costs up to the place where goods enter the Union customs territory."
+        ),
+        "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0952",
+    },
+    {
+        "title": "European Commission — EORI",
+        "section": "Economic Operators Registration and Identification",
+        "text": (
+            "An EORI number is mandatory for customs clearance in the European Union for "
+            "imports, exports and transit. It is used to identify economic operators and "
+            "other persons in their dealings with customs authorities."
+        ),
+        "url": "https://taxation-customs.ec.europa.eu/customs/customs-procedures-import-and-export/customs-operations/economic-operators-registration-and-identification-number-eori_en",
+    },
+    {
+        "title": "European Commission — TARIC",
+        "section": "EU Customs Tariff (TARIC)",
+        "text": (
+            "TARIC is the multilingual integrated tariff database of the European Union. It "
+            "integrates measures relating to the Common Customs Tariff and should be checked "
+            "for the measures applicable to a product code. TARIC does not contain national "
+            "VAT and excise-duty rates."
+        ),
+        "url": "https://taxation-customs.ec.europa.eu/online-services/online-services-and-databases-customs/eu-customs-tariff-taric_en",
+    },
+    {
+        "title": "European Commission — Access2Markets",
+        "section": "My Trade Assistant",
+        "text": (
+            "To look up an applicable import duty, use My Trade Assistant with the country of "
+            "origin, destination country and product code. Results can include duties, rules "
+            "of origin, import procedures and product requirements."
+        ),
+        "url": "https://trade.ec.europa.eu/access-to-markets/en/home",
+    },
+    {
+        "title": "European Commission — Binding Tariff Information",
+        "section": "European Binding Tariff Information (EBTI)",
+        "text": (
+            "Binding Tariff Information is a legal decision issued by an EU customs authority "
+            "on the tariff classification of a product. It is the appropriate route when a "
+            "business needs legal certainty about classification rather than an informal HS "
+            "code suggestion."
+        ),
+        "url": "https://taxation-customs.ec.europa.eu/online-services/online-services-and-databases-customs/european-binding-tariff-information-ebti_en",
+    },
+]
 
 
 # Each profile below represents one real, mode-specific service. Keeping modes
@@ -266,6 +348,253 @@ CARGO_RISK_FACTOR = {
 
 MODE_SPEED_KM_DAY = {"Road": 650, "Rail": 850, "Air": 3000, "Sea": 500}
 MODE_CO2_G_TON_KM = {"Road": 62, "Rail": 22, "Air": 602, "Sea": 16}
+
+
+# -----------------------------------------------------------------------------
+# Grounded Knowledge Brain helpers
+# -----------------------------------------------------------------------------
+
+STOP_WORDS = {
+    "about", "after", "also", "and", "are", "can", "does", "for", "from",
+    "goods", "have", "how", "into", "must", "need", "should", "that", "the",
+    "their", "this", "use", "what", "when", "where", "which", "with", "your",
+}
+
+
+def knowledge_tokens(value: str) -> set[str]:
+    """Return stable search tokens without sending document contents elsewhere."""
+    return {
+        token
+        for token in re.findall(r"[a-z0-9][a-z0-9.-]+", value.lower())
+        if len(token) > 2 and token not in STOP_WORDS
+    }
+
+
+def chunk_text(text: str, title: str, source_url: str = "") -> list[dict]:
+    """Split an uploaded document into small, citable retrieval chunks."""
+    clean = re.sub(r"\s+", " ", text).strip()
+    if not clean:
+        return []
+    words = clean.split()
+    chunks = []
+    for index in range(0, len(words), 180):
+        part = " ".join(words[index:index + 220]).strip()
+        if len(part) < 40:
+            continue
+        chunks.append(
+            {
+                "title": title,
+                "section": f"Uploaded document · passage {len(chunks) + 1}",
+                "text": part,
+                "url": source_url,
+            }
+        )
+    return chunks
+
+
+def extract_uploaded_knowledge(uploaded_files) -> tuple[list[dict], list[str]]:
+    """Extract text from PDF, TXT, Markdown and CSV files uploaded in the UI."""
+    chunks: list[dict] = []
+    errors: list[str] = []
+    for uploaded_file in uploaded_files or []:
+        try:
+            raw = uploaded_file.getvalue()
+            if uploaded_file.name.lower().endswith(".pdf"):
+                if PdfReader is None:
+                    errors.append(f"{uploaded_file.name}: PDF support is not installed.")
+                    continue
+                reader = PdfReader(uploaded_file)
+                text = "\n".join((page.extract_text() or "") for page in reader.pages)
+            else:
+                text = raw.decode("utf-8", errors="replace")
+            file_chunks = chunk_text(text, uploaded_file.name)
+            if not file_chunks:
+                errors.append(f"{uploaded_file.name}: no readable text was found.")
+            chunks.extend(file_chunks)
+        except Exception as exc:  # Keep one bad file from breaking the live demo.
+            errors.append(f"{uploaded_file.name}: {exc}")
+    return chunks, errors
+
+
+def retrieve_knowledge(question: str, documents: list[dict], limit: int = 4) -> list[dict]:
+    """Rank passages by transparent token overlap and phrase matches."""
+    query_tokens = knowledge_tokens(question)
+    if not query_tokens:
+        return []
+    ranked = []
+    for document in documents:
+        haystack = f"{document['title']} {document['section']} {document['text']}"
+        document_tokens = knowledge_tokens(haystack)
+        overlap = query_tokens & document_tokens
+        score = len(overlap) * 4
+        lowered = haystack.lower()
+        score += sum(2 for token in query_tokens if token in lowered)
+        if "eori" in question.lower() and "eori" in lowered:
+            score += 10
+        if any(term in question.lower() for term in ("tariff", "duty", "hs code", "classification")):
+            score += 5 if any(term in lowered for term in ("taric", "tariff", "classification")) else 0
+        if any(term in question.lower() for term in ("customs value", "valuation", "transaction value")):
+            score += 7 if any(term in lowered for term in ("customs value", "transaction value")) else 0
+        if score:
+            ranked.append((score, document))
+    ranked.sort(key=lambda item: item[0], reverse=True)
+    return [dict(document, score=score) for score, document in ranked[:limit]]
+
+
+def secret_value(name: str) -> str:
+    """Read an optional Streamlit secret without failing on local machines."""
+    try:
+        return str(st.secrets.get(name, "")).strip()
+    except Exception:
+        return ""
+
+
+def grounded_extract_answer(question: str, passages: list[dict]) -> str:
+    """Build a useful, fully extractive answer when no model key is configured."""
+    if not passages:
+        return (
+            "I cannot answer that from the loaded sources. Upload the relevant regulation, "
+            "form or firm FAQ, or ask a narrower question."
+        )
+    lines = [
+        "Based only on the most relevant loaded passages:",
+        "",
+    ]
+    for index, passage in enumerate(passages[:3], start=1):
+        sentences = re.split(r"(?<=[.!?])\s+", passage["text"])
+        excerpt = " ".join(sentences[:2]).strip()
+        lines.append(f"- {excerpt} **[{index}]**")
+    lines.extend(
+        [
+            "",
+            "This is an operational research aid, not a binding customs decision or legal advice.",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def grounded_ai_answer(question: str, passages: list[dict]) -> tuple[str, str]:
+    """Use OpenAI when configured; otherwise return an honest extractive answer."""
+    api_key = secret_value("OPENAI_API_KEY")
+    if not passages:
+        return grounded_extract_answer(question, passages), "No supported passage found"
+    if not api_key or OpenAI is None:
+        return grounded_extract_answer(question, passages), "Grounded extractive mode"
+
+    context = "\n\n".join(
+        f"[{index}] {passage['title']} — {passage['section']}\n{passage['text']}"
+        for index, passage in enumerate(passages, start=1)
+    )
+    instructions = (
+        "You are LogiHub's customs knowledge assistant. Answer only from the supplied context. "
+        "Cite every material claim with [1], [2], etc. If the context is insufficient, say so. "
+        "Do not invent tariff rates, HS classifications, deadlines or legal conclusions. Keep "
+        "the answer concise and end with: 'Operational research aid — verify with customs.'"
+    )
+    try:
+        client = OpenAI(api_key=api_key)
+        response = client.responses.create(
+            model=secret_value("OPENAI_MODEL") or "gpt-4o-mini",
+            instructions=instructions,
+            input=f"Question: {question}\n\nApproved context:\n{context}",
+            max_output_tokens=650,
+        )
+        return response.output_text.strip(), "AI synthesis · grounded in retrieved passages"
+    except Exception as exc:
+        fallback = grounded_extract_answer(question, passages)
+        return fallback, f"AI unavailable; used grounded extractive mode ({type(exc).__name__})"
+
+
+def render_knowledge_brain() -> None:
+    """Render the source-grounded Q&A workspace and stop before the quote workflow."""
+    st.markdown(
+        """
+        <div class="knowledge-hero">
+            <div class="knowledge-kicker">Grounded Knowledge Brain</div>
+            <h2>Ask the rules. See the evidence.</h2>
+            <p>Search approved EU customs material together with your firm's PDFs, forms and FAQs. Every answer is limited to retrieved passages and shows its sources.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    source_col, answer_col = st.columns([0.9, 1.45], gap="large")
+    with source_col:
+        with st.container(border=True):
+            st.markdown('<div class="step-label">Knowledge sources</div>', unsafe_allow_html=True)
+            st.subheader("Load firm material")
+            uploaded_files = st.file_uploader(
+                "PDF, TXT, Markdown or CSV",
+                type=["pdf", "txt", "md", "csv"],
+                accept_multiple_files=True,
+                help="Files are processed for this browser session and are not added to the public repository.",
+            )
+            uploaded_chunks, upload_errors = extract_uploaded_knowledge(uploaded_files)
+            st.metric("Approved passages", len(OFFICIAL_KNOWLEDGE) + len(uploaded_chunks))
+            st.caption(
+                f"{len(OFFICIAL_KNOWLEDGE)} curated EU passages"
+                + (f" · {len(uploaded_chunks)} uploaded passages" if uploaded_chunks else "")
+            )
+            for error in upload_errors:
+                st.warning(error)
+            with st.expander("View built-in official sources"):
+                for source in OFFICIAL_KNOWLEDGE:
+                    st.markdown(f"- [{source['title']} — {source['section']}]({source['url']})")
+            mode_label = "AI synthesis enabled" if secret_value("OPENAI_API_KEY") and OpenAI else "Grounded extractive mode"
+            st.markdown(f'<div class="source-status"><span></span>{mode_label}</div>', unsafe_allow_html=True)
+
+    with answer_col:
+        with st.container(border=True):
+            st.markdown('<div class="step-label">Source-cited Q&A</div>', unsafe_allow_html=True)
+            st.subheader("Ask your knowledge base")
+            examples = [
+                "How is customs value calculated under the Union Customs Code?",
+                "When is an EORI number required?",
+                "Where should I verify the import duty for a product?",
+                "How can I obtain legal certainty about an HS classification?",
+            ]
+            selected_example = st.selectbox("Example question", ["Write my own question", *examples])
+            default_question = "" if selected_example == "Write my own question" else selected_example
+            with st.form("knowledge_question_form"):
+                question = st.text_area(
+                    "Question",
+                    value=default_question,
+                    placeholder="Example: Which costs must be added to the transaction value?",
+                    height=110,
+                )
+                ask_clicked = st.form_submit_button("Answer from approved sources", type="primary", use_container_width=True)
+
+            if ask_clicked:
+                documents = [*OFFICIAL_KNOWLEDGE, *uploaded_chunks]
+                passages = retrieve_knowledge(question, documents)
+                answer, answer_mode = grounded_ai_answer(question, passages)
+                st.session_state["knowledge_result"] = {
+                    "question": question,
+                    "answer": answer,
+                    "mode": answer_mode,
+                    "passages": passages,
+                }
+
+            result = st.session_state.get("knowledge_result")
+            if result:
+                st.markdown(f'<div class="answer-mode">{escape(result["mode"])}</div>', unsafe_allow_html=True)
+                st.markdown(result["answer"])
+                if result["passages"]:
+                    st.markdown("#### Sources used")
+                    for index, passage in enumerate(result["passages"], start=1):
+                        label = f"[{index}] {passage['title']} — {passage['section']}"
+                        if passage.get("url"):
+                            st.markdown(f"**{label}** · [Open official source]({passage['url']})")
+                        else:
+                            st.markdown(f"**{label}**")
+                        st.caption(passage["text"][:420] + ("…" if len(passage["text"]) > 420 else ""))
+            else:
+                st.info("Choose an example or enter a question. The assistant will show the exact passages used.")
+
+    st.markdown(
+        '<div class="demo-note"><span class="demo-icon">i</span><span><strong>Grounding rule.</strong> The assistant must abstain when the answer is not supported by an approved or uploaded source. It does not replace a binding customs decision.</span></div>',
+        unsafe_allow_html=True,
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -759,6 +1088,26 @@ st.markdown(
             display:inline-grid; place-items:center; width:23px; height:23px;
             border-radius:8px; color:#1D4ED8; background:#DBEAFE; font-weight:900;
         }
+        .knowledge-hero {
+            position:relative; overflow:hidden; margin:.35rem 0 1rem; padding:1.4rem 1.5rem;
+            color:white; background:linear-gradient(125deg,#101514 0%,#173D35 62%,#1B6855 100%);
+            border-radius:26px; box-shadow:0 20px 48px rgba(16,21,20,.13);
+        }
+        .knowledge-hero:after {
+            content:""; position:absolute; width:210px; height:210px; right:-55px; top:-105px;
+            border-radius:50%; background:rgba(200,255,98,.20);
+        }
+        .knowledge-kicker { color:#C8FF62; font-size:.7rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+        .knowledge-hero h2 { position:relative; z-index:1; color:white; margin:.45rem 0 .35rem; font-size:2rem; letter-spacing:-.04em; }
+        .knowledge-hero p { position:relative; z-index:1; max-width:760px; color:#D6E4DF; margin:0; line-height:1.55; }
+        .source-status, .answer-mode {
+            display:inline-flex; align-items:center; gap:.45rem; margin-top:.65rem; padding:.38rem .62rem;
+            color:#185845; background:#E4F8F2; border:1px solid #C5EADF; border-radius:999px;
+            font-size:.7rem; font-weight:800;
+        }
+        .source-status span { width:7px; height:7px; border-radius:50%; background:#20A77D; }
+        .answer-mode { color:#31510E; background:#ECFFD0; border-color:#D1F69A; }
+        [data-testid="stFileUploader"] { padding:.35rem; border-radius:15px; background:#F8FAF9; }
         [data-testid="stVerticalBlockBorderWrapper"] {
             background:rgba(255,255,255,.94); border-color:var(--line) !important;
             border-radius:22px !important; box-shadow:0 12px 34px rgba(30,55,90,.055);
@@ -1156,27 +1505,27 @@ st.markdown(
                 <div class="brand-mark">LH</div>
                 <div>
                     <div class="brand-name">LogiHub AI</div>
-                    <div class="brand-caption">Freight intelligence platform</div>
+                    <div class="brand-caption">AI operating hub for freight teams</div>
                 </div>
             </div>
-            <div class="network-pill"><span class="network-dot"></span> European carrier profiles online</div>
+            <div class="network-pill"><span class="network-dot"></span> Grounded workflow MVP</div>
         </div>
         <div class="hero-grid">
             <div class="hero-copy">
-                <div class="eyebrow">One search · multiple freight networks</div>
-                <h1 class="hero-title">Move cargo.<br>Skip the chase.</h1>
-                <p class="hero-subtitle">Compare European freight options, customs support and delivery terms in one intelligent workspace.</p>
+                <div class="eyebrow">Intake · knowledge · first useful output</div>
+                <h1 class="hero-title">Run freight.<br>Know the rules.</h1>
+                <p class="hero-subtitle">Turn an incoming shipment request into a source-cited customs brief, ranked transport options and a client-ready proposal in one workspace.</p>
                 <div class="hero-facts">
-                    <span class="hero-fact">{len(CARRIERS)} mode-specific carrier profiles</span>
-                    <span class="hero-fact">4 transport modes</span>
-                    <span class="hero-fact">AI-assisted comparison</span>
+                    <span class="hero-fact">Source-grounded Q&amp;A</span>
+                    <span class="hero-fact">Explainable freight matching</span>
+                    <span class="hero-fact">Client-ready handoff</span>
                 </div>
             </div>
             <div class="hero-card">
-                <div class="hero-card-label">Network snapshot</div>
-                <div class="hero-card-number">{len(CARRIERS)}×</div>
-                <div class="hero-card-copy">One shipment brief is matched against researched road, rail, air and sea service profiles.</div>
-                <div class="hero-card-line">Ready to compare</div>
+                <div class="hero-card-label">Operations snapshot</div>
+                <div class="hero-card-number">2×</div>
+                <div class="hero-card-copy">One hub combines freight intake and quoting with a grounded customs Knowledge Brain.</div>
+                <div class="hero-card-line">Built for freight teams</div>
             </div>
         </div>
     </div>
@@ -1184,12 +1533,24 @@ st.markdown(
         <div class="journey-item"><span class="journey-number">1</span> Route</div>
         <div class="journey-item"><span class="journey-number">2</span> Schedule</div>
         <div class="journey-item"><span class="journey-number">3</span> Cargo</div>
-        <div class="journey-item"><span class="journey-number">4</span> Preferences</div>
+        <div class="journey-item"><span class="journey-number">4</span> Proposal &amp; handoff</div>
     </div>
-    <div class="demo-note"><span class="demo-icon">i</span><span><strong>Independent MVP.</strong> Real carrier names and trademarks are shown for comparison. Rates, availability and reliability are LogiHub market estimates—not live carrier quotes. No affiliation or endorsement is implied.</span></div>
+    <div class="demo-note"><span class="demo-icon">i</span><span><strong>Independent MVP.</strong> Customs answers cite approved sources. Carrier rates, availability and reliability are LogiHub estimates—not live quotes. Real company names are used for comparison; no affiliation is implied.</span></div>
     """,
     unsafe_allow_html=True,
 )
+
+workspace = st.radio(
+    "Choose workspace",
+    ["Freight intake & proposal", "Customs Knowledge Brain"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="active_workspace",
+)
+
+if workspace == "Customs Knowledge Brain":
+    render_knowledge_brain()
+    st.stop()
 
 
 with st.container(border=True):
@@ -1380,9 +1741,9 @@ if "offers" in st.session_state:
         st.markdown(
             f"""
             <div class="ai-brief">
-                <div class="ai-brief-kicker">✦ AI Shipment Brief</div>
+                <div class="ai-brief-kicker">✦ Operations brief</div>
                 <h3>What needs attention before booking</h3>
-                <p>LogiHub translated the shipment data into an operational checklist for the selected recommendation.</p>
+                <p>LogiHub translated the intake data into an explainable operational checklist for the selected recommendation.</p>
                 <div class="ai-grid">
                     <div class="ai-cell"><strong>Why this match</strong><span>{best['carrier']} ranks highest for {search['priority'].lower()}, with {best['days']}-day estimated transit and a {best['match_score']}% match score.</span></div>
                     <div class="ai-cell"><strong>Document checklist</strong><span>{document_preview}</span></div>
@@ -1472,7 +1833,7 @@ if "offers" in st.session_state:
                     f"""
                     <div id="{booking_anchor_id}"></div>
                     <div class="booking-head">
-                        <div class="booking-kicker">Step 5 · Booking & payment</div>
+                        <div class="booking-kicker">Step 5 · Carrier handoff</div>
                         <div class="booking-title">Request carrier confirmation</div>
                     </div>
                     """,
