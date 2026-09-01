@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import math
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from html import escape
+from uuid import uuid4
 
 import streamlit as st
 from streamlit.components.v1 import html as components_html
@@ -550,6 +552,122 @@ No payment is collected before carrier confirmation.
 """
 
 
+def build_booking_receipt(
+    search: dict,
+    offer: dict,
+    company_name: str,
+    contact_name: str,
+    email: str,
+    phone: str,
+    payment_method: str,
+) -> dict:
+    """Create one stable confirmation record after the demo form is submitted."""
+    return {
+        "offer_profile_id": offer["profile_id"],
+        "reference": f"LH-{datetime.now().strftime('%y%m%d')}-{uuid4().hex[:6].upper()}",
+        "created_at": datetime.now().strftime("%d %b %Y, %H:%M"),
+        "company": company_name.strip(),
+        "contact_name": contact_name.strip(),
+        "email": email.strip(),
+        "phone": phone.strip() or "Not provided",
+        "carrier": offer["carrier"],
+        "service": offer["service"],
+        "mode": offer["mode"],
+        "route": (
+            f"{search['origin_city']}, {search['origin_country']} → "
+            f"{search['destination_city']}, {search['destination_country']}"
+        ),
+        "cargo": search["cargo_description"],
+        "shipment_size": f"{search['weight']:,.0f} kg · {search['packages']} packages",
+        "transit": f"{offer['days']} days",
+        "estimated_arrival": offer["arrival_date"].strftime("%d %b %Y"),
+        "estimated_total": format_euro(offer["price"]),
+        "payment_method": payment_method,
+    }
+
+
+def receipt_card_html(receipt: dict) -> str:
+    """Return a safe, styled receipt for display inside the Streamlit page."""
+    safe = {key: escape(str(value)) for key, value in receipt.items()}
+    return f"""
+    <div id="receipt-section" class="receipt-card">
+        <div class="receipt-head">
+            <div>
+                <div class="receipt-kicker">LogiHub AI · Booking confirmation</div>
+                <div class="receipt-title">Request received</div>
+                <div class="receipt-reference">Reference {safe['reference']} · {safe['created_at']}</div>
+            </div>
+            <div class="receipt-status"><span></span> Pending carrier confirmation</div>
+        </div>
+        <div class="receipt-grid">
+            <div class="receipt-cell">
+                <small>Customer</small>
+                <strong>{safe['contact_name']}</strong>
+                <span>{safe['company']}<br>{safe['email']}<br>{safe['phone']}</span>
+            </div>
+            <div class="receipt-cell">
+                <small>Selected freight service</small>
+                <strong>{safe['carrier']}</strong>
+                <span>{safe['service']} · {safe['mode']}<br>{safe['transit']} · arrival {safe['estimated_arrival']}</span>
+            </div>
+            <div class="receipt-cell">
+                <small>Shipment</small>
+                <strong>{safe['route']}</strong>
+                <span>{safe['cargo']}<br>{safe['shipment_size']}</span>
+            </div>
+            <div class="receipt-cell">
+                <small>Preferred settlement</small>
+                <strong>{safe['payment_method']}</strong>
+                <span>No payment has been charged.</span>
+            </div>
+        </div>
+        <div class="receipt-total">
+            <div><small>Estimated order total</small><span>Final rate requires carrier confirmation</span></div>
+            <strong>{safe['estimated_total']}</strong>
+        </div>
+        <div class="receipt-footnote">
+            This confirmation records a demo booking request. It is not a carrier-issued invoice or a binding transport contract.
+        </div>
+    </div>
+    """
+
+
+def receipt_download_html(receipt: dict) -> str:
+    """Create a standalone receipt that opens in any browser and prints to PDF."""
+    safe = {key: escape(str(value)) for key, value in receipt.items()}
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LogiHub confirmation {safe['reference']}</title>
+<style>
+body{{margin:0;background:#f4f7f5;color:#101514;font:15px/1.5 Arial,sans-serif}}
+.sheet{{max-width:820px;margin:40px auto;background:white;border:1px solid #dce6e1;border-radius:24px;padding:34px;box-shadow:0 18px 45px #223f3520}}
+.top{{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;border-bottom:1px solid #dce6e1;padding-bottom:22px}}
+.brand{{font-size:14px;font-weight:800;color:#177760;text-transform:uppercase;letter-spacing:.1em}}
+h1{{margin:8px 0 4px;font-size:32px}} .muted{{color:#64736e}}
+.status{{background:#ecffd0;color:#25420f;border-radius:999px;padding:8px 12px;font-weight:700}}
+.grid{{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:22px 0}}
+.cell{{border:1px solid #dce6e1;border-radius:15px;padding:16px}} small{{display:block;color:#64736e;margin-bottom:6px}} strong{{display:block;margin-bottom:5px}}
+.total{{display:flex;justify-content:space-between;align-items:center;background:#101514;color:white;border-radius:18px;padding:18px 20px}} .total strong{{font-size:28px;margin:0}}
+.note{{color:#64736e;font-size:12px;margin-top:18px}}
+@media(max-width:650px){{.sheet{{margin:0;border-radius:0;padding:22px}}.top,.total{{display:block}}.status{{display:inline-block;margin-top:14px}}.grid{{grid-template-columns:1fr}}.total strong{{margin-top:8px}}}}
+</style>
+</head>
+<body><main class="sheet">
+<div class="top"><div><div class="brand">LogiHub AI · Booking confirmation</div><h1>Request received</h1><div class="muted">Reference {safe['reference']} · {safe['created_at']}</div></div><div class="status">Pending carrier confirmation</div></div>
+<div class="grid">
+<div class="cell"><small>Customer</small><strong>{safe['contact_name']}</strong>{safe['company']}<br>{safe['email']}<br>{safe['phone']}</div>
+<div class="cell"><small>Selected freight service</small><strong>{safe['carrier']}</strong>{safe['service']} · {safe['mode']}<br>{safe['transit']} · arrival {safe['estimated_arrival']}</div>
+<div class="cell"><small>Shipment</small><strong>{safe['route']}</strong>{safe['cargo']}<br>{safe['shipment_size']}</div>
+<div class="cell"><small>Preferred settlement</small><strong>{safe['payment_method']}</strong>No payment has been charged.</div>
+</div>
+<div class="total"><div><small>Estimated order total</small>Final rate requires carrier confirmation</div><strong>{safe['estimated_total']}</strong></div>
+<div class="note">This confirmation records a demo booking request. It is not a carrier-issued invoice or a binding transport contract.</div>
+</main></body></html>"""
+
+
 # -----------------------------------------------------------------------------
 # Interface
 # -----------------------------------------------------------------------------
@@ -985,6 +1103,26 @@ st.markdown(
         .booking-summary strong { color:var(--black); }
         .booking-summary span { color:#51625D; font-size:.82rem; }
         .payment-note { color:#42534E; background:#F0F4F1; border-radius:14px; padding:.7rem .8rem; font-size:.78rem; }
+        .receipt-card {
+            margin-top:1rem; padding:1.15rem; color:var(--black); background:#FFFFFF;
+            border:1px solid #DCE6E1; border-radius:22px; box-shadow:0 16px 38px rgba(34,65,58,.08);
+        }
+        .receipt-head { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding-bottom:1rem; border-bottom:1px solid #E2EAE6; }
+        .receipt-kicker { color:#177760; font-size:.67rem; font-weight:900; letter-spacing:.11em; text-transform:uppercase; }
+        .receipt-title { margin:.3rem 0 .15rem; font-size:1.55rem; line-height:1.05; font-weight:900; letter-spacing:-.035em; }
+        .receipt-reference { color:#64736E; font-size:.75rem; }
+        .receipt-status { flex:none; display:inline-flex; align-items:center; gap:.45rem; color:#31510E; background:#ECFFD0; border:1px solid #D1F69A; border-radius:999px; padding:.42rem .65rem; font-size:.7rem; font-weight:800; }
+        .receipt-status span { width:7px; height:7px; border-radius:50%; background:#82C826; }
+        .receipt-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; margin:1rem 0; }
+        .receipt-cell { min-width:0; padding:.8rem; background:#F8FAF9; border:1px solid #E0E8E4; border-radius:15px; }
+        .receipt-cell small { display:block; color:#72807B; font-size:.66rem; font-weight:750; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.3rem; }
+        .receipt-cell strong { display:block; color:var(--black); font-size:.85rem; overflow-wrap:anywhere; }
+        .receipt-cell span { display:block; color:#5B6A65; font-size:.75rem; line-height:1.5; margin-top:.2rem; overflow-wrap:anywhere; }
+        .receipt-total { display:flex; align-items:center; justify-content:space-between; gap:1rem; color:white; background:var(--black); border-radius:17px; padding:.85rem 1rem; }
+        .receipt-total small { display:block; color:#AEBBB7; font-size:.66rem; text-transform:uppercase; letter-spacing:.07em; }
+        .receipt-total span { color:#BFCBC7; font-size:.7rem; }
+        .receipt-total strong { flex:none; color:white; font-size:1.55rem; letter-spacing:-.04em; }
+        .receipt-footnote { color:#6A7873; font-size:.68rem; line-height:1.45; margin-top:.65rem; }
         @media (max-width: 820px) {
             .journey-strip { grid-template-columns:repeat(2,1fr); }
             .hero-shell { border-radius:22px; padding:1.15rem; }
@@ -993,6 +1131,7 @@ st.markdown(
             .hero-card { display:none; }
             .hero-title { font-size:3.35rem; }
             .ai-grid { grid-template-columns:1fr; }
+            .receipt-grid { grid-template-columns:1fr; }
         }
         @media (max-width: 700px) {
             .block-container { padding-left:1rem; padding-right:1rem; }
@@ -1000,6 +1139,9 @@ st.markdown(
             .journey-strip { grid-template-columns:1fr 1fr; gap:.25rem; }
             .journey-item { font-size:.7rem; }
             .hero-title { font-size:1.8rem; }
+            .receipt-head, .receipt-total { display:block; }
+            .receipt-status { margin-top:.7rem; }
+            .receipt-total strong { display:block; margin-top:.35rem; }
         }
     </style>
     """,
@@ -1176,6 +1318,7 @@ if search_clicked:
         st.session_state["offers"] = calculate_offers(search)
         st.session_state["search"] = search
         st.session_state.pop("selected_offer", None)
+        st.session_state.pop("booking_receipt", None)
 
 
 if "offers" in st.session_state:
@@ -1313,17 +1456,21 @@ if "offers" in st.session_state:
 
                 if st.button("Select this estimate", key=f"select_{offer['profile_id']}_{rank}", use_container_width=True):
                     st.session_state["selected_offer"] = offer
-                    st.session_state["scroll_to_booking"] = True
+                    st.session_state.pop("booking_receipt", None)
+                    scroll_request_id = st.session_state.get("scroll_request_id", 0) + 1
+                    st.session_state["scroll_request_id"] = scroll_request_id
+                    st.session_state["scroll_to_booking"] = scroll_request_id
                     st.rerun()
 
         selected_offer = st.session_state.get("selected_offer")
         if selected_offer:
+            booking_anchor_id = f"booking-section-{st.session_state.get('scroll_request_id', 0)}"
             st.divider()
             with st.container(border=True):
                 st.markdown('<span class="section-anchor checkout-section"></span>', unsafe_allow_html=True)
                 st.markdown(
-                    """
-                    <div id="booking-section"></div>
+                    f"""
+                    <div id="{booking_anchor_id}"></div>
                     <div class="booking-head">
                         <div class="booking-kicker">Step 5 · Booking & payment</div>
                         <div class="booking-title">Request carrier confirmation</div>
@@ -1387,24 +1534,88 @@ if "offers" in st.session_state:
                     )
 
                 if booking_submitted:
-                    if not company_name.strip() or not contact_name.strip() or "@" not in email or not confirmation:
+                    if not company_name.strip() or not contact_name.strip() or "@" not in email.strip() or not confirmation:
                         st.error("Please complete the company, contact and email fields and accept the confirmation statement.")
                     else:
+                        receipt = build_booking_receipt(
+                            search,
+                            selected_offer,
+                            company_name,
+                            contact_name,
+                            email,
+                            phone,
+                            payment_method,
+                        )
+                        st.session_state["booking_receipt"] = receipt
+                        st.session_state["scroll_to_receipt"] = receipt["reference"]
                         st.success(
-                            f"Demo booking request created for {company_name}. "
-                            f"Preferred settlement: {payment_method}. No payment was charged and nothing was sent to {selected_offer['carrier']}."
+                            f"Booking request {receipt['reference']} was created for {company_name}. "
+                            "Your confirmation receipt is ready below."
                         )
 
-            if st.session_state.pop("scroll_to_booking", False):
+                receipt = st.session_state.get("booking_receipt")
+                if receipt and receipt.get("offer_profile_id") == selected_offer["profile_id"]:
+                    st.markdown(receipt_card_html(receipt), unsafe_allow_html=True)
+                    st.download_button(
+                        "Download confirmation receipt",
+                        data=receipt_download_html(receipt),
+                        file_name=f"logihub_confirmation_{receipt['reference']}.html",
+                        mime="text/html",
+                        key=f"download_receipt_{receipt['reference']}",
+                        use_container_width=True,
+                    )
+
+            scroll_request_id = st.session_state.pop("scroll_to_booking", None)
+            if scroll_request_id is not None:
                 components_html(
-                    """
+                    f"""
                     <script>
-                        setTimeout(() => {
-                            const target = window.parent.document.getElementById("booking-section");
-                            if (target) {
-                                target.scrollIntoView({behavior: "smooth", block: "start"});
-                            }
-                        }, 250);
+                        (() => {{
+                            const requestId = {int(scroll_request_id)};
+                            let attempts = 0;
+                            const scrollToBooking = () => {{
+                                const target = window.parent.document.getElementById("booking-section-{int(scroll_request_id)}");
+                                attempts += 1;
+                                if (target) {{
+                                    target.scrollIntoView({{behavior: "smooth", block: "start"}});
+                                    return true;
+                                }}
+                                return attempts >= 20;
+                            }};
+                            if (!scrollToBooking()) {{
+                                const timer = window.setInterval(() => {{
+                                    if (scrollToBooking()) window.clearInterval(timer);
+                                }}, 100);
+                            }}
+                        }})();
+                    </script>
+                    """,
+                    height=0,
+                )
+
+            receipt_request_id = st.session_state.pop("scroll_to_receipt", None)
+            if receipt_request_id is not None:
+                components_html(
+                    f"""
+                    <script>
+                        (() => {{
+                            const requestId = "{receipt_request_id}";
+                            let attempts = 0;
+                            const scrollToReceipt = () => {{
+                                const target = window.parent.document.getElementById("receipt-section");
+                                attempts += 1;
+                                if (target) {{
+                                    target.scrollIntoView({{behavior: "smooth", block: "center"}});
+                                    return true;
+                                }}
+                                return attempts >= 20;
+                            }};
+                            if (!scrollToReceipt()) {{
+                                const timer = window.setInterval(() => {{
+                                    if (scrollToReceipt()) window.clearInterval(timer);
+                                }}, 100);
+                            }}
+                        }})();
                     </script>
                     """,
                     height=0,
